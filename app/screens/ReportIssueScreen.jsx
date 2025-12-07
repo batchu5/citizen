@@ -1,0 +1,515 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Picker } from '@react-native-picker/picker';
+import axios from "axios";
+import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
+import { useEffect, useState } from "react";
+import { Image, Modal, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Button, Card, Text, TextInput } from "react-native-paper";
+import { createIssue } from "../api/issueApi";
+import { BASE_URL } from "../utils/constants";
+import DropDownPicker from "react-native-dropdown-picker";
+import {saveImageOffline} from '../../db/offlineUpload'
+import { useSQLiteContext } from "expo-sqlite";
+import NetInfo from "@react-native-community/netinfo"
+import { syncWithBackend } from "../../db/offlineUpload";
+
+
+
+export default function ReportIssueScreen({ navigation }) {
+  const [description, setDescription] = useState("");
+  const [image, setImage] = useState(null);
+  const [location, setLocation] = useState(null);
+  const [issueType, setIssueType] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [confirmation, setConfirmation] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [priority, setPriority] = useState("urgent");
+  // const [token, setToken] = useState("");
+  const token = AsyncStorage.getItem("token");
+  
+
+  const issueOptions = [
+    "Sanitation",
+    "Roads & Infrastructure",
+    "Electricity",
+    "Water Supply",
+    "Green Spaces",
+    "Traffic Management",
+    "Other"
+  ];
+  const [dropdownValue, setDropdownValue] = useState(null);
+  const [dropdownItems, setDropdownItems] = useState(
+    issueOptions.map((item) => ({
+      label: item,
+      value: item,
+    }))
+  );
+
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [existingIssue, setExistingIssue] = useState(null);
+  const db = useSQLiteContext();
+  console.log("🟡 DB instance:", db);
+  // const imageRef = useRef<View>(null);
+
+  useEffect(() => {
+      console.log("image")
+  }, [image])
+
+   useEffect(() => {     
+      (async () => {
+        const rows = await db.getAllAsync("SELECT * FROM images");
+        console.log("DB CONTENT:", rows);
+    })();
+  }, []);
+
+   useEffect(() => {
+    const unsub = NetInfo.addEventListener(state => {
+      console.log("internet is connected now");
+      if (state.isConnected) syncWithBackend(db, token);
+    });
+    return () => unsub();
+  }, []);
+  
+
+
+  const checkDuplicateIssue = async (data, token) => {
+    const res = await axios.post(
+      `${BASE_URL}/issues/check-duplicate`,
+      data,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return res.data;
+  };
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+    if (!result.canceled) setImage(result.assets[0].uri);
+  };
+
+  const getLocation = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") return alert("Permission denied!");
+    const loc = await Location.getCurrentPositionAsync({});
+    setLocation(loc.coords);
+  };
+
+  const submitIssue = async () => {
+    if (!issueType) return alert("Please select an issue type");
+    if (!location) return alert("Please capture your location");
+
+    console.log("inside the submit issue")
+    setLoading(true);
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const geoLocation = {
+        type: "Point",
+        coordinates: [location.longitude, location.latitude]
+      };
+
+      await uploadNewIssue(token, geoLocation);
+
+
+      // const checkData = { geoLocation: JSON.stringify(geoLocation), issueType };
+      // const duplicate = await checkDuplicateIssue(checkData, token);
+
+      // if (duplicate.exists) {
+      //   setExistingIssue(duplicate.issue);
+      //   setShowDuplicateModal(true);
+      // } else {
+      //   console.log("exicuting else block");
+      // }
+    } catch (err) {
+      console.log("Issue submission error:", err);
+      alert("Failed to submit issue.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createIssue = async (token, geoLocation) => {
+    console.log("create Issue");
+    await saveImageOffline({db, imageUri: image, issueType: issueType, description: description, location: JSON.stringify(location), geoLocation: JSON.stringify(geoLocation)});
+
+    const state = await NetInfo.fetch();
+    if (state.isConnected) {
+      console.log("Online → syncing immediately…");
+      await syncWithBackend(db, token);
+    }
+
+    alert("Saved offline. Will upload when internet comes.");
+  };
+
+  const uploadNewIssue = async (token, geoLocation) => {
+
+    try {
+      // const localUri = await captureRef(imageRef, {
+      //   height: 440,
+      //   quality: 1,
+      // });
+      console.log("upload new Issue");
+
+      if(image){
+        console.log("selected IMage", image);
+        await createIssue(token, geoLocation);
+      }
+    
+      // if (localUri) {
+      //   alert('Saved!');
+      // }
+    } catch (e) {
+      console.log("error: ",e);
+    }
+
+    // const data = new FormData();
+    // data.append("description", description);
+    // data.append("location", JSON.stringify(location));
+    // data.append("issueType", issueType);
+    // data.append("image", {
+    //   uri: image,
+    //   type: "image/jpeg",
+    //   name: `issue_${Date.now()}.jpg`,
+    // });
+    // data.append("geoLocation", JSON.stringify(geoLocation));
+
+    // console.log("data", data);
+    // const resultData = await createIssue(data, token);
+    // console.log("priority is",resultData.data.priority);
+
+    // setPriority(resultData.data.priority); 
+
+    // setConfirmation(true);
+    // 
+  };
+
+  return (
+    <View style={styles.container}>
+      <Card style={styles.card}>
+
+        <Text style={styles.title}>Report an Issue</Text>
+        <Text style={styles.subtitle}>Your feedback helps improve your community</Text>
+
+
+        <Button
+          mode="outlined"
+          icon="camera"
+          onPress={pickImage}
+          textColor="black"
+          style={styles.outlinedButton}
+        >Capture Photo</Button>
+
+        {image && (
+          <View style={styles.previewContainer}>
+            <Image source={{ uri: image }} style={styles.imagePreview} />
+          </View>
+        )}
+
+        <Button
+          mode="outlined"
+          icon={location ? null : "map-marker"}
+          onPress={getLocation}
+          textColor={location ? "green" : "black"}
+          style={styles.outlinedButton}
+        >
+          {location ? "Location Captured" : "Get Location"}
+        </Button>
+
+
+
+
+        <View style={{ marginVertical: 12, zIndex: 1000 }}>
+          <DropDownPicker
+            open={open}
+            value={dropdownValue}
+            items={dropdownItems}
+            setOpen={setOpen}
+            setValue={(val) => {
+              setDropdownValue(val());
+              setIssueType(val());
+            }}
+            setItems={setDropdownItems}
+
+            placeholder="Select Issue Type"
+
+            style={{
+              backgroundColor: "#FFFFFF",
+              borderWidth: 1,
+              borderColor: "#9FA6AD",
+              borderRadius: 12,
+              elevation: 3,
+              minHeight: 55,
+            }}
+
+            dropDownContainerStyle={{
+              backgroundColor: "#FFFFFF",
+              borderWidth: 1,
+              borderColor: "#9FA6AD",
+              borderRadius: 12,
+              elevation: 3,
+              fontSize: 16
+            }}
+
+            placeholderStyle={{
+              color: "black",
+              fontSize: 16,
+            }}
+
+            labelStyle={{
+              color: "black",
+              fontSize: 16,
+            }}
+
+            listItemLabelStyle={{
+              color: "black",
+            }}
+
+            arrowIconStyle={{
+              tintColor: "black",
+            }}
+
+            textStyle={{
+              color: "black",
+            }}
+          />
+        </View>
+
+
+        <TextInput
+          label={<Text style={{ color: "black" }}>Description</Text>}
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          mode="outlined"
+          style={styles.input}
+          theme={{
+            colors: {
+              primary: "black",
+              outline: "#9FA6AD",
+              onSurface: "white",
+              text: "black",
+            },
+          }}
+          outlineColor="#E0E0E0"
+          activeOutlineColor="#9FA6AD"
+          textColor="black"
+          placeholderTextColor="black"
+        />
+
+        <Button
+          mode="contained"
+          onPress={submitIssue}
+          disabled={loading || confirmation}
+          style={styles.submitButton}
+          contentStyle={{
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            paddingVertical: 8,
+          }}
+        >
+          {loading ? (
+            <View style={{ width: "100%", alignItems: "center" }}>
+              <ActivityIndicator size="small" color="white" />
+            </View>
+          ) : (
+            <Text style={{ color: "white", fontSize: 16, fontWeight: 1 }}>Submit Issue</Text>
+
+          )}
+        </Button>
+
+
+        <Modal
+          visible={showDuplicateModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDuplicateModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Similar Issue Detected</Text>
+
+              {existingIssue?.image && (
+                <Image
+                  source={{ uri: existingIssue.image }}
+                  style={styles.modalImage}
+                  resizeMode="cover"
+                />
+              )}
+
+              <Text style={styles.modalDescription}>{existingIssue?.description}</Text>
+
+              <View style={styles.modalButtons}>
+                <Button
+                  mode="contained"
+                  buttonColor="#2563EB"
+                  textColor="white"
+                  onPress={async () => {
+                    const token = await AsyncStorage.getItem("token");
+                    const geoLocation = {
+                      type: "Point",
+                      coordinates: [location.longitude, location.latitude],
+                    };
+                    setShowDuplicateModal(false);
+                    await uploadNewIssue(token, geoLocation);
+                  }}
+                >
+                  It's Different
+                </Button>
+
+                <Button
+                  mode="outlined"
+                  textColor="#2563EB"
+                  style={{
+                    borderColor: "#2563EB",
+                    borderWidth: 1,
+                  }}
+                  onPress={() => {
+                    setShowDuplicateModal(false);
+                    navigation.goBack();
+                  }}
+                >
+                  No, It's Same
+                </Button>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+      </Card>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F6F8F7",
+    justifyContent: "center",
+    padding: 20,
+  },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 25,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#4e7dfeff",
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: "#838893ff",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  outlinedButton: {
+    borderWidth: 1,
+    borderColor: "#9FA6AD",
+    borderRadius: 12,
+    elevation: 3,
+    marginBottom: 8,
+    borderRadius: 12,
+  },
+  previewContainer: {
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  imagePreview: {
+    width: 120,
+    height: 100,
+    borderRadius: 10,
+    marginBottom: 6,
+  },
+  successText: {
+    color: "#16A34A",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  pickerContainer: {
+    backgroundColor: "#202022",
+    borderRadius: 14,
+    borderWidth: 1.4,
+    borderColor: "#444",
+    marginVertical: 12,
+    overflow: "hidden",
+  },
+  picker: {
+    height: 60,
+    color: "white",
+    fontSize: 16,
+    borderRadius: 16,
+  },
+  input: {
+    marginVertical: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    minHeight: 140,
+  },
+  submitButton: {
+    backgroundColor: "#329a4cff",
+    borderRadius: 12,
+    color: "white",
+    marginTop: 12,
+  },
+  confirmationText: {
+    textAlign: "center",
+    color: "#16A34A",
+    marginTop: 15,
+    fontWeight: "600",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  modalContent: {
+    width: "85%",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  modalImage: {
+    width: "100%",
+    height: 180,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  modalDescription: {
+    fontSize: 15,
+    color: "black",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    gap: 2,
+  },
+
+});
