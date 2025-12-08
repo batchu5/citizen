@@ -13,7 +13,7 @@ export default function HomeHeader() {
         <Text style={styles.titleText}>Civic</Text>
 
         <Image
-          source={require("../app/uivideos/x.png")}
+          source={require("../src/uivideos/x.png")}
           style={styles.xIcon}
           resizeMode="contain"
         />
@@ -32,7 +32,7 @@ export default function HomeHeader() {
       
       <TouchableOpacity onPress={() => {navigation.navigate("Community")}}>
         <Image
-          source={require("../app/uivideos/community.png")}
+          source={require("../src/uivideos/community.png")}
           style={{ width: 40, height: 40 }}
           resizeMode="contain"
         />
@@ -41,7 +41,7 @@ export default function HomeHeader() {
       </TouchableOpacity>
         
         <Image
-          source={require("../app/uivideos/user.png")}
+          source={require("../src/uivideos/user.png")}
           style={{
             width: 34,
             height: 34,

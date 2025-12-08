@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import * as Location from "expo-location";
 import axios from "axios";
-import { BASE_URL } from "../app/utils/constants";
+import { BASE_URL } from "../src/utils/constants";
 
 export default function Toggler({ onToggle }) {
   const [selected, setSelected] = useState("high");

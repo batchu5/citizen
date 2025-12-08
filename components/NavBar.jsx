@@ -176,7 +176,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from "react-native-reanimated";
-import { AuthContext } from "../app/context/AuthContext";
+import { AuthContext } from "../src/context/AuthContext";
 import Add from "./Add";
 import { useNavigation } from "@react-navigation/native";
 import Logout from "./Logout";

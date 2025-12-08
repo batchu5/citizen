@@ -1,10 +1,14 @@
 import React, { useEffect } from "react";
 import { Provider as PaperProvider } from "react-native-paper";
-import { AuthProvider } from "./context/AuthContext";
-import AppNavigator from "./navigation/AppNavigator";
+import { NavigationContainer } from "@react-navigation/native";
+
 import { SQLiteProvider } from "expo-sqlite";
-import {registerBackgroundTask} from "../db/backgroundSync"
-import {migrateDbIfNeeded} from "../db/index"
+
+import AppNavigator from "./src/navigation/AppNavigator";
+import { AuthProvider } from "./src/context/AuthContext";
+
+import { migrateDbIfNeeded } from "./db";
+import { registerBackgroundTask } from "./db/backgroundSync";
 
 export default function App() {
   useEffect(() => {
@@ -15,7 +19,9 @@ export default function App() {
     <SQLiteProvider databaseName="civix" onInit={migrateDbIfNeeded}>
       <PaperProvider>
         <AuthProvider>
-          <AppNavigator />
+          <NavigationContainer>
+            <AppNavigator />
+          </NavigationContainer>
         </AuthProvider>
       </PaperProvider>
     </SQLiteProvider>

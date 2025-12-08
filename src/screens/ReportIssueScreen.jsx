@@ -1,20 +1,24 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Picker } from '@react-native-picker/picker';
+import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { useEffect, useState } from "react";
 import { Image, Modal, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Button, Card, Text, TextInput } from "react-native-paper";
+import {
+  ActivityIndicator,
+  Button,
+  Card,
+  Text,
+  TextInput,
+} from "react-native-paper";
 import { createIssue } from "../api/issueApi";
 import { BASE_URL } from "../utils/constants";
 import DropDownPicker from "react-native-dropdown-picker";
-import {saveImageOffline} from '../../db/offlineUpload'
+import { saveImageOffline } from "../../db/offlineUpload";
 import { useSQLiteContext } from "expo-sqlite";
-import NetInfo from "@react-native-community/netinfo"
+import NetInfo from "@react-native-community/netinfo";
 import { syncWithBackend } from "../../db/offlineUpload";
-
-
 
 export default function ReportIssueScreen({ navigation }) {
   const [description, setDescription] = useState("");
@@ -22,11 +26,7 @@ export default function ReportIssueScreen({ navigation }) {
   const [location, setLocation] = useState(null);
   const [issueType, setIssueType] = useState("");
   const [loading, setLoading] = useState(false);
-  const [confirmation, setConfirmation] = useState(false);
   const [open, setOpen] = useState(false);
-  const [priority, setPriority] = useState("urgent");
-  // const [token, setToken] = useState("");
-  const token = AsyncStorage.getItem("token");
   
 
   const issueOptions = [
@@ -36,7 +36,7 @@ export default function ReportIssueScreen({ navigation }) {
     "Water Supply",
     "Green Spaces",
     "Traffic Management",
-    "Other"
+    "Other",
   ];
   const [dropdownValue, setDropdownValue] = useState(null);
   const [dropdownItems, setDropdownItems] = useState(
@@ -53,33 +53,53 @@ export default function ReportIssueScreen({ navigation }) {
   // const imageRef = useRef<View>(null);
 
   useEffect(() => {
-      console.log("image")
-  }, [image])
+    console.log("image");
+  }, [image]);
 
-   useEffect(() => {     
-      (async () => {
-        const rows = await db.getAllAsync("SELECT * FROM images");
-        console.log("DB CONTENT:", rows);
+  useEffect(() => {
+    (async () => {
+      const rows = await db.getAllAsync("SELECT * FROM images");
+      console.log("DB CONTENT:", rows);
     })();
   }, []);
 
-   useEffect(() => {
-    const unsub = NetInfo.addEventListener(state => {
+  useEffect(() => {
+    const unsub = NetInfo.addEventListener(async(state) => {
       console.log("internet is connected now");
-      if (state.isConnected) syncWithBackend(db, token);
+      const token = await AsyncStorage.getItem("token");
+      if (state.isConnected) {
+        await syncWithBackend(db, token);
+      }
     });
     return () => unsub();
   }, []);
-  
 
-
-  const checkDuplicateIssue = async (data, token) => {
-    const res = await axios.post(
-      `${BASE_URL}/issues/check-duplicate`,
-      data,
-      { headers: { Authorization: `Bearer ${token}` } }
+  const checkOfflineDuplicate = async (db, { issueType, geoLocation }) => {
+    const rows = await db.getAllAsync(
+      "SELECT * FROM images WHERE is_synced = 1"
     );
-    return res.data;
+    console.log("geo Location from checkofflineDuplicate", geoLocation);
+
+    if (!rows.length) return null;
+
+    const [lng, lat] = geoLocation.coordinates;
+
+    let closest = null;
+
+    for (const row of rows) {
+      const savedGeo = JSON.parse(row.geoLocation);
+      const [sLng, sLat] = savedGeo.coordinates;
+      const dist = Math.sqrt((lng - sLng) ** 2 + (lat - sLat) ** 2);
+
+      if (row.issueType === issueType && dist < 0.00005) {
+        closest = row;
+        break;
+      }
+    }
+    console.log("closest", closest);
+    setExistingIssue(closest);
+
+    return closest;
   };
 
   const pickImage = async () => {
@@ -102,28 +122,17 @@ export default function ReportIssueScreen({ navigation }) {
     if (!issueType) return alert("Please select an issue type");
     if (!location) return alert("Please capture your location");
 
-    console.log("inside the submit issue")
+    console.log("inside the submit issue");
     setLoading(true);
 
     try {
       const token = await AsyncStorage.getItem("token");
       const geoLocation = {
         type: "Point",
-        coordinates: [location.longitude, location.latitude]
+        coordinates: [location.longitude, location.latitude],
       };
 
       await uploadNewIssue(token, geoLocation);
-
-
-      // const checkData = { geoLocation: JSON.stringify(geoLocation), issueType };
-      // const duplicate = await checkDuplicateIssue(checkData, token);
-
-      // if (duplicate.exists) {
-      //   setExistingIssue(duplicate.issue);
-      //   setShowDuplicateModal(true);
-      // } else {
-      //   console.log("exicuting else block");
-      // }
     } catch (err) {
       console.log("Issue submission error:", err);
       alert("Failed to submit issue.");
@@ -132,68 +141,61 @@ export default function ReportIssueScreen({ navigation }) {
     }
   };
 
-  const createIssue = async (token, geoLocation) => {
-    console.log("create Issue");
-    await saveImageOffline({db, imageUri: image, issueType: issueType, description: description, location: JSON.stringify(location), geoLocation: JSON.stringify(geoLocation)});
+  const handleFinalUpload = async (token, geoLocation) => {
+    await saveImageOffline({
+      db,
+      imageUri: image,
+      issueType,
+      description,
+      location: JSON.stringify(location),
+      geoLocation: JSON.stringify(geoLocation),
+    });
 
     const state = await NetInfo.fetch();
     if (state.isConnected) {
-      console.log("Online → syncing immediately…");
-      await syncWithBackend(db, token);
+      const result = await syncWithBackend(db, token);
+      console.log("result from handlefileupload", result);
+      navigation.navigate("SuccessScreen", {priority: result} );
+      return;
     }
 
     alert("Saved offline. Will upload when internet comes.");
   };
 
-  const uploadNewIssue = async (token, geoLocation) => {
+  const createIssue = async (token, geoLocation) => {
+    console.log("create Issue");
+    const dup = await checkOfflineDuplicate(db, { issueType, geoLocation });
 
+    if (dup) {
+      console.log("duplicate issue exists from the database (SQLITE)");
+      setExistingIssue(dup);
+      setShowDuplicateModal(true);
+      return;
+    }
+
+    await handleFinalUpload(token, geoLocation);
+  };
+
+  const uploadNewIssue = async (token, geoLocation) => {
     try {
-      // const localUri = await captureRef(imageRef, {
-      //   height: 440,
-      //   quality: 1,
-      // });
       console.log("upload new Issue");
 
-      if(image){
+      if (image) {
         console.log("selected IMage", image);
         await createIssue(token, geoLocation);
       }
-    
-      // if (localUri) {
-      //   alert('Saved!');
-      // }
     } catch (e) {
-      console.log("error: ",e);
+      console.log("error: ", e);
     }
-
-    // const data = new FormData();
-    // data.append("description", description);
-    // data.append("location", JSON.stringify(location));
-    // data.append("issueType", issueType);
-    // data.append("image", {
-    //   uri: image,
-    //   type: "image/jpeg",
-    //   name: `issue_${Date.now()}.jpg`,
-    // });
-    // data.append("geoLocation", JSON.stringify(geoLocation));
-
-    // console.log("data", data);
-    // const resultData = await createIssue(data, token);
-    // console.log("priority is",resultData.data.priority);
-
-    // setPriority(resultData.data.priority); 
-
-    // setConfirmation(true);
-    // 
   };
 
   return (
     <View style={styles.container}>
       <Card style={styles.card}>
-
         <Text style={styles.title}>Report an Issue</Text>
-        <Text style={styles.subtitle}>Your feedback helps improve your community</Text>
-
+        <Text style={styles.subtitle}>
+          Your feedback helps improve your community
+        </Text>
 
         <Button
           mode="outlined"
@@ -201,7 +203,9 @@ export default function ReportIssueScreen({ navigation }) {
           onPress={pickImage}
           textColor="black"
           style={styles.outlinedButton}
-        >Capture Photo</Button>
+        >
+          Capture Photo
+        </Button>
 
         {image && (
           <View style={styles.previewContainer}>
@@ -219,9 +223,6 @@ export default function ReportIssueScreen({ navigation }) {
           {location ? "Location Captured" : "Get Location"}
         </Button>
 
-
-
-
         <View style={{ marginVertical: 12, zIndex: 1000 }}>
           <DropDownPicker
             open={open}
@@ -233,9 +234,7 @@ export default function ReportIssueScreen({ navigation }) {
               setIssueType(val());
             }}
             setItems={setDropdownItems}
-
             placeholder="Select Issue Type"
-
             style={{
               backgroundColor: "#FFFFFF",
               borderWidth: 1,
@@ -244,40 +243,33 @@ export default function ReportIssueScreen({ navigation }) {
               elevation: 3,
               minHeight: 55,
             }}
-
             dropDownContainerStyle={{
               backgroundColor: "#FFFFFF",
               borderWidth: 1,
               borderColor: "#9FA6AD",
               borderRadius: 12,
               elevation: 3,
-              fontSize: 16
+              fontSize: 16,
             }}
-
             placeholderStyle={{
               color: "black",
               fontSize: 16,
             }}
-
             labelStyle={{
               color: "black",
               fontSize: 16,
             }}
-
             listItemLabelStyle={{
               color: "black",
             }}
-
             arrowIconStyle={{
               tintColor: "black",
             }}
-
             textStyle={{
               color: "black",
             }}
           />
         </View>
-
 
         <TextInput
           label={<Text style={{ color: "black" }}>Description</Text>}
@@ -303,7 +295,7 @@ export default function ReportIssueScreen({ navigation }) {
         <Button
           mode="contained"
           onPress={submitIssue}
-          disabled={loading || confirmation}
+          disabled={loading}
           style={styles.submitButton}
           contentStyle={{
             flexDirection: "row",
@@ -317,11 +309,11 @@ export default function ReportIssueScreen({ navigation }) {
               <ActivityIndicator size="small" color="white" />
             </View>
           ) : (
-            <Text style={{ color: "white", fontSize: 16, fontWeight: 1 }}>Submit Issue</Text>
-
+            <Text style={{ color: "white", fontSize: 16, fontWeight: 1 }}>
+              Submit Issue
+            </Text>
           )}
         </Button>
-
 
         <Modal
           visible={showDuplicateModal}
@@ -333,29 +325,31 @@ export default function ReportIssueScreen({ navigation }) {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Similar Issue Detected</Text>
 
-              {existingIssue?.image && (
+              {existingIssue?.uri && (
                 <Image
-                  source={{ uri: existingIssue.image }}
+                  source={{ uri: existingIssue.uri }}
                   style={styles.modalImage}
                   resizeMode="cover"
                 />
               )}
 
-              <Text style={styles.modalDescription}>{existingIssue?.description}</Text>
+              <Text style={styles.modalDescription}>
+                {existingIssue?.description}
+              </Text>
 
               <View style={styles.modalButtons}>
                 <Button
                   mode="contained"
                   buttonColor="#2563EB"
                   textColor="white"
-                  onPress={async () => {
+                  onPress={async() => {
                     const token = await AsyncStorage.getItem("token");
                     const geoLocation = {
                       type: "Point",
                       coordinates: [location.longitude, location.latitude],
                     };
                     setShowDuplicateModal(false);
-                    await uploadNewIssue(token, geoLocation);
+                    handleFinalUpload(token, geoLocation);
                   }}
                 >
                   It's Different
@@ -370,7 +364,6 @@ export default function ReportIssueScreen({ navigation }) {
                   }}
                   onPress={() => {
                     setShowDuplicateModal(false);
-                    navigation.goBack();
                   }}
                 >
                   No, It's Same
@@ -379,7 +372,6 @@ export default function ReportIssueScreen({ navigation }) {
             </View>
           </View>
         </Modal>
-
       </Card>
     </View>
   );
@@ -511,5 +503,4 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: 2,
   },
-
 });

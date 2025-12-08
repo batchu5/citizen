@@ -107,7 +107,7 @@ export default function QuotationCard() {
           </View>
 
           <Animated.Image
-            source={require("../app/uivideos/smile.png")}
+            source={require("../src/uivideos/smile.png")}
             style={{
               width: 200,
               height: 130,

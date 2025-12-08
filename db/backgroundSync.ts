@@ -10,8 +10,10 @@ TaskManager.defineTask(TASK_NAME, async () => {
   try {
     console.log("Background sync triggered");
 
-    const db = getDBInstance();  // <-- FIX: now DB works in background
-    const token = await AsyncStorage.getItem("token")||"" ;
+    const db = getDBInstance();  
+    const token = await AsyncStorage.getItem("token") || "" ;
+
+    console.log("token from backgroundSync", token);
 
     await syncWithBackend(db, token );
 
@@ -25,7 +27,7 @@ TaskManager.defineTask(TASK_NAME, async () => {
 export async function registerBackgroundTask() {
   try {
     await BackgroundFetch.registerTaskAsync(TASK_NAME, {
-      minimumInterval: 60 * 15,
+      minimumInterval: 60 * 1,
       stopOnTerminate: false,
       startOnBoot: true,
     });
