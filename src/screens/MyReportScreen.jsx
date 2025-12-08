@@ -16,7 +16,7 @@ const ProgressTracker = ({ currentStatus }) => {
   ];
 
   const getCurrentStageIndex = () => {
-    const index = stages.findIndex((s) => s.key === currentStatus.toLowerCase());
+    const index = stages.findIndex((s) => s.key === currentStatus);
     return index !== -1 ? index : 0;
   };
 
@@ -203,7 +203,7 @@ export default function MyReportsScreen({ navigation }) {
   }, []);
 
   const getStatusStyle = (status) => {
-    switch (status.toLowerCase()) {
+    switch (status) {
       case "pending":
         return {
           backgroundColor: "#FEE2E2",

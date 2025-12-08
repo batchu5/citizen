@@ -1,0 +1,49 @@
+{
+  "login": {
+    "welcomeBack": "Welcome Back",
+    "loginSubtitle": "Login to continue",
+
+    "emailLabel": "Email",
+    "emailPlaceholder": "Enter your email",
+
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+
+    "button": "Login",
+
+    "forgotPassword": "Forgot Password?",
+    "noAccount": "Don't have an account?",
+    "register": "Register",
+
+    "or": "or",
+
+    "googleButton": "Continue with Google"
+  },
+  "register": {
+    "title": "Register Account",
+
+    "nameLabel": "Name",
+    "namePlaceholder": "Enter your Name",
+
+    "phoneLabel": "Phone Number",
+    "phonePlaceholder": "Enter your phone number",
+
+    "emailLabel": "Email",
+    "emailPlaceholder": "Enter your email",
+
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+
+    "button": "Register",
+
+    "alreadyHaveAccount": "Already have an account?",
+    "login": "Login",
+
+    "or": "or",
+
+    "continueWithGoogle": "Continue with Google"
+  }
+  
+  
+
+}
