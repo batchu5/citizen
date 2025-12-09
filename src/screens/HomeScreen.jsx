@@ -57,6 +57,8 @@ export default function HomeScreen({ navigation }) {
       noReports: "No reports available",
       viewMore: "View More",
       viewLess: "View Less",
+      high: "High Priority",
+      low: "Recent",
     },
 
     hi: {
@@ -72,6 +74,8 @@ export default function HomeScreen({ navigation }) {
       noReports: "कोई रिपोर्ट उपलब्ध नहीं",
       viewMore: "और देखें",
       viewLess: "कम देखें",
+      high: "उच्च प्राथमिकता",
+      low: "हाल के",
     },
   };
 
