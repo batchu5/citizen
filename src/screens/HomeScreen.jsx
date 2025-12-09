@@ -207,6 +207,53 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <View style={styles.headercontainer}>
+        {/* TITLE + X IMAGE */}
+        <View style={styles.headertitleWrapper}>
+          <Text style={styles.headertitleText}>Civic</Text>
+
+          <Image
+            source={require("../uivideos/x4.png")}
+            style={styles.headerxIcon}
+            resizeMode="contain"
+          />
+        </View>
+        <View
+          style={{
+            width: "100%",
+            flexDirection: "row",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 20,
+            right: 90,
+            transform: [{ translateY: 14 }],
+          }}
+        >
+          <View style={{ flexDirection: "row", gap: 5 }}>
+            <View>
+              <TouchableOpacity
+                onPress={() => {
+                  navigation.navigate("Community");
+                }}
+              >
+                <Image
+                  source={require("../uivideos/community.png")}
+                  style={{ width: 40, height: 40 }}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View>
+              <LanToggler
+                selectedLang={langCode}
+                onToggle={(damn) => setLangCode(damn)}
+              />
+            </View>
+          </View>
+
+        </View>
+      </View>
       <StatusBar hidden={true} />
       <View style={{ width: "100%", marginBottom: 4 }}>
         <View style={styles.borderWrapper}></View>
@@ -232,12 +279,9 @@ export default function HomeScreen({ navigation }) {
         <ImageScrollView />
       </View>
 
-      
-        
-      <View style={{marginBottom: 20, transform: [{translateY: -30}]}}>
-        <Toggler onToggle={(mode) => fetchReports(mode)} />
+      <View style={{ marginBottom: 20, transform: [{ translateY: -30 }] }}>
+        <Toggler onToggle={(mode) => fetchReports(mode)} selectedLang = {langCode} />
       </View>
-      
 
       <View style={styles.container}>
         {loading ? (
@@ -619,5 +663,38 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 4,
     color: "black",
+  },
+  headercontainer: {
+    height: 90,
+    width: "100%",
+    flexDirection: "row", // important if you want horizontal layout
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    backgroundColor: "#F6F8F7",
+  },
+
+  headertitleWrapper: {
+    top: 15,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  headertitleText: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "black",
+    marginRight: -2,
+  },
+
+  headerxIcon: {
+    width: 38,
+    height: 38,
+    marginTop: 6,
+  },
+  headerprofileIcon: {
+    width: 30,
+    height: 30,
+    top: 18,
   },
 });

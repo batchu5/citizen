@@ -69,8 +69,9 @@ export default function AppNavigator() {
         name="Home"
         component={HomeScreen}
         options={{
-          header: (props) => <HomeHeader {...props} />,
-          title: "Home",
+          // header: (props) => <HomeHeader {...props} />,
+          // title: "Home",
+          headerShown: false
         }}
       />
       <Stack.Screen

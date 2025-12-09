@@ -31,7 +31,7 @@ export const COMMUNITY_LANG = {
     errorCreateTitle: "Error",
     errorCreateMsg: "Community name is required",
     successCreate: "Community created!",
-    Shkjn: "Shkjn"
+    Shkjn: "Shkjn",
   },
 
   hi: {
@@ -48,10 +48,9 @@ export const COMMUNITY_LANG = {
     errorCreateTitle: "त्रुटि",
     errorCreateMsg: "समुदाय का नाम आवश्यक है",
     successCreate: "समुदाय बनाया गया!",
-    Shkjn: "Shkjn"
-  }
+    Shkjn: "Shkjn",
+  },
 };
-
 
 export default function CommunityScreen() {
   const navigation = useNavigation();
@@ -73,20 +72,22 @@ export default function CommunityScreen() {
     loadLang();
   }, []);
 
+  useEffect(() => {
+    loadAlerts();
+    getCommunities();
+  }, [lang]);
+
   async function loadAlerts() {
     try {
-      const res = await axios.get(`${BASE_URL}/alerts/all`, {params: {lang: lang}});
+      const res = await axios.get(`${BASE_URL}/alerts/all`, {
+        params: { lang: lang },
+      });
       setAlerts(res.data.alerts);
       console.log("res of alerts", res.data.alerts);
     } catch (err) {
       console.log("Error fetching alerts:", err);
     }
   }
-
-  useEffect(() => {
-    getCommunities();
-    loadAlerts();
-  }, [lang]);
 
   const t = COMMUNITY_LANG[lang];
 
@@ -126,8 +127,12 @@ export default function CommunityScreen() {
   const getCommunities = async () => {
     try {
       console.log("getting community details");
-      const res = await axios.get(`${BASE_URL}/community/allcom`, {params: {lang:lang}});
+      const res = await axios.get(`${BASE_URL}/community/allcom`, {
+        params: { lang: lang },
+      });
       setCommunities(res.data.communities);
+
+      console.log("communities", res.data.communities);
     } catch (err) {
       console.log("Error fetching communities:", err);
     }
@@ -195,15 +200,20 @@ export default function CommunityScreen() {
           keyExtractor={(item, idx) => "a-" + idx}
           renderItem={({ item }) => (
             <View style={styles.alertCard}>
-              <Text style={styles.alertTitle}>{typeof item.title === "object"
-                    ? item.title[lang]
-                    : item.title}</Text>
-              <Text style={styles.alertMsg}>{typeof item.message === "object"
-                    ? item.message[lang]
-                    : item.message}</Text>
-              <Text style={styles.alertDept}>~ {typeof item.department === "object"
-                    ? item.department[lang]
-                    : item.department}</Text>
+              <Text style={styles.alertTitle}>
+                {typeof item.title === "object" ? item.title[lang] : item.title}
+              </Text>
+              <Text style={styles.alertMsg}>
+                {typeof item.message === "object"
+                  ? item.message[lang]
+                  : item.message}
+              </Text>
+              <Text style={styles.alertDept}>
+                ~{" "}
+                {typeof item.department === "object"
+                  ? item.department[lang]
+                  : item.department}
+              </Text>
             </View>
           )}
         />

@@ -7,14 +7,14 @@ import { useNavigation } from "@react-navigation/native";
 export default function HomeHeader() {
   const navigation = useNavigation(); 
   return (
-    <View style={styles.container}>
+    <View style={styles.headercontainer}>
       {/* TITLE + X IMAGE */}
-      <View style={styles.titleWrapper}>
-        <Text style={styles.titleText}>Civic</Text>
+      <View style={styles.headertitleWrapper}>
+        <Text style={styles.headertitleText}>Civic</Text>
 
         <Image
           source={require("../src/uivideos/x.png")}
-          style={styles.xIcon}
+          style={styles.headerxIcon}
           resizeMode="contain"
         />
       </View>
@@ -56,7 +56,7 @@ export default function HomeHeader() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  headercontainer: {
     height: 90,
     width: "100%",
     flexDirection: "row", // important if you want horizontal layout
@@ -66,25 +66,25 @@ const styles = StyleSheet.create({
     backgroundColor: "#F6F8F7",
   },
 
-  titleWrapper: {
+  headertitleWrapper: {
     top: 15,
     flexDirection: "row",
     alignItems: "center",
   },
 
-  titleText: {
+  headertitleText: {
     fontSize: 22,
     fontWeight: "700",
     color: "black",
     marginRight: -2,
   },
 
-  xIcon: {
+  headerxIcon: {
     width: 38,
     height: 38,
     marginTop: 6,
   },
-  profileIcon: {
+  headerprofileIcon: {
     width: 30,
     height: 30,
     top: 18,

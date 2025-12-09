@@ -65,18 +65,21 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignSelf: "center",
-    // marginVertical: 10,
     backgroundColor: "white",
-    paddingHorizontal: 4,
-    borderRadius: 20
+    paddingHorizontal: 0,
+    borderRadius: 20,
+    borderColor: "#2563EB",
+    borderWidth: 1
   },
   button: {
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 20,
+    alignContent: "center"
   },
   activeButton: {
     backgroundColor: "#2563EB",
+    
   },
   activeText: {
     color: "white",

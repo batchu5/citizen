@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+import { useIsFocused } from "@react-navigation/native";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,9 +8,29 @@ import {
   StyleSheet,
 } from "react-native";
 
-export default function Toggler({ onToggle }) {
+export default function Toggler({ onToggle, selectedLang }) {
   const [selected, setSelected] = useState("high");
   const animatedValue = useRef(new Animated.Value(0)).current;
+  const [lang, setLang] = useState(selectedLang);
+
+  useEffect(() => {
+  const loadLang = async () => {
+    const stored = await AsyncStorage.getItem("lang");
+    setLang(stored);
+  };
+  // loadLang();
+  }, [selectedLang]);
+
+  const LABELS = {
+    en: {
+      high: "High Priority",
+      low: "Recent",
+    },
+    hi: {
+      high: "उच्च प्राथमिकता",
+      low: "हाल के",
+    },
+  };
 
   const handleToggle = (option) => {
     setSelected(option);
@@ -40,7 +61,7 @@ export default function Toggler({ onToggle }) {
           onPress={() => handleToggle("high")}
         >
           <Text style={[styles.optionText, selected === "high" && styles.selectedText]}>
-            High Priority
+            {LABELS[selectedLang].high}
           </Text>
         </TouchableOpacity>
 
@@ -49,7 +70,7 @@ export default function Toggler({ onToggle }) {
           onPress={() => handleToggle("low")}
         >
           <Text style={[styles.optionText, selected === "low" && styles.selectedText]}>
-            Recent
+            {LABELS[selectedLang].low}
           </Text>
         </TouchableOpacity>
 
