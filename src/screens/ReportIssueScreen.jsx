@@ -27,24 +27,95 @@ export default function ReportIssueScreen({ navigation }) {
   const [issueType, setIssueType] = useState("");
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  
+  const STRINGS = {
+    en: {
+      title: "Report an Issue",
+      subtitle: "Your feedback helps improve your community",
 
-  const issueOptions = [
-    "Sanitation",
-    "Roads & Infrastructure",
-    "Electricity",
-    "Water Supply",
-    "Green Spaces",
-    "Traffic Management",
-    "Other",
-  ];
+      capturePhoto: "Capture Photo",
+      locationCaptured: "Location Captured",
+      getLocation: "Get Location",
+
+      selectIssueType: "Select Issue Type",
+      descriptionLabel: "Description",
+      submitIssue: "Submit Issue",
+
+      duplicateTitle: "Similar Issue Detected",
+      differentBtn: "It's Different",
+      sameBtn: "No, It's Same",
+    },
+    hi: {
+      title: "समस्या की रिपोर्ट करें",
+      subtitle: "आपका फीडबैक आपके समुदाय को बेहतर बनाने में मदद करता है",
+
+      capturePhoto: "फोटो कैप्चर करें",
+      locationCaptured: "स्थान कैप्चर हो गया",
+      getLocation: "स्थान प्राप्त करें",
+
+      selectIssueType: "समस्या का प्रकार चुनें",
+      descriptionLabel: "विवरण",
+      submitIssue: "समस्या सबमिट करें",
+
+      duplicateTitle: "मिलती-जुलती समस्या मिली",
+      differentBtn: "यह अलग है",
+      sameBtn: "नहीं, यह वही है",
+    },
+  };
+
+  const [lang, setLang] = useState("en");
+
+  useEffect(() => {
+    const loadLang = async () => {
+      try {
+        const stored = await AsyncStorage.getItem("lang");
+        if (stored === "hi" || stored === "en") {
+          setLang(stored);
+        }
+      } catch (e) {
+        console.log("Failed to load lang", e);
+      }
+    };
+    loadLang();
+  }, []);
+   const t = STRINGS[lang] || STRINGS.en;
+
+  const ISSUE_TYPES = {
+  en: [
+    { label: "Sanitation", value: "Sanitation" },
+    { label: "Roads & Infrastructure", value: "Roads & Infrastructure" },
+    { label: "Electricity", value: "Electricity" },
+    { label: "Water Supply", value: "Water Supply" },
+    { label: "Green Spaces", value: "Green Spaces" },
+    { label: "Traffic Management", value: "Traffic Management" },
+    { label: "Other", value: "Other" }
+  ],
+
+  hi: [
+    { label: "स्वच्छता", value: "Sanitation" },
+    { label: "सड़कें और अवसंरचना", value: "Roads & Infrastructure" },
+    { label: "बिजली", value: "Electricity" },
+    { label: "जल आपूर्ति", value: "Water Supply" },
+    { label: "हरित क्षेत्र", value: "Green Spaces" },
+    { label: "यातायात प्रबंधन", value: "Traffic Management" },
+    { label: "अन्य", value: "Other" }
+  ]
+};
+
   const [dropdownValue, setDropdownValue] = useState(null);
-  const [dropdownItems, setDropdownItems] = useState(
-    issueOptions.map((item) => ({
-      label: item,
-      value: item,
-    }))
-  );
+  const [dropdownItems, setDropdownItems] = useState([]);
+  useEffect(() => {
+    const loadLang = async () => {
+      const stored = await AsyncStorage.getItem("lang");
+      const currentLang = stored || "en";
+      setLang(currentLang);
+
+      // SET DROPDOWN LABELS BASED ON LANGUAGE
+      setDropdownItems(ISSUE_TYPES[currentLang]);
+    };
+
+    loadLang();
+  }, []);
+
 
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [existingIssue, setExistingIssue] = useState(null);
@@ -192,9 +263,9 @@ export default function ReportIssueScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Card style={styles.card}>
-        <Text style={styles.title}>Report an Issue</Text>
+        <Text style={styles.title}>{t.title}</Text>
         <Text style={styles.subtitle}>
-          Your feedback helps improve your community
+          {t.subtitle}
         </Text>
 
         <Button
@@ -204,7 +275,7 @@ export default function ReportIssueScreen({ navigation }) {
           textColor="black"
           style={styles.outlinedButton}
         >
-          Capture Photo
+          {t.capturePhoto}
         </Button>
 
         {image && (
@@ -220,7 +291,7 @@ export default function ReportIssueScreen({ navigation }) {
           textColor={location ? "green" : "black"}
           style={styles.outlinedButton}
         >
-          {location ? "Location Captured" : "Get Location"}
+          {location ? t.locationCaptured : t.getLocation}
         </Button>
 
         <View style={{ marginVertical: 12, zIndex: 1000 }}>
@@ -234,7 +305,7 @@ export default function ReportIssueScreen({ navigation }) {
               setIssueType(val());
             }}
             setItems={setDropdownItems}
-            placeholder="Select Issue Type"
+            placeholder={t.selectIssueType}
             style={{
               backgroundColor: "#FFFFFF",
               borderWidth: 1,
@@ -272,7 +343,7 @@ export default function ReportIssueScreen({ navigation }) {
         </View>
 
         <TextInput
-          label={<Text style={{ color: "black" }}>Description</Text>}
+          label={<Text style={{ color: "black" }}>{t.descriptionLabel}</Text>}
           value={description}
           onChangeText={setDescription}
           multiline
@@ -310,7 +381,7 @@ export default function ReportIssueScreen({ navigation }) {
             </View>
           ) : (
             <Text style={{ color: "white", fontSize: 16, fontWeight: 1 }}>
-              Submit Issue
+              {t.submitIssue}
             </Text>
           )}
         </Button>
@@ -323,7 +394,7 @@ export default function ReportIssueScreen({ navigation }) {
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Similar Issue Detected</Text>
+              <Text style={styles.modalTitle}>{t.duplicateTitle}</Text>
 
               {existingIssue?.uri && (
                 <Image
@@ -352,7 +423,7 @@ export default function ReportIssueScreen({ navigation }) {
                     handleFinalUpload(token, geoLocation);
                   }}
                 >
-                  It's Different
+                  {t.differentBtn}
                 </Button>
 
                 <Button
@@ -366,7 +437,7 @@ export default function ReportIssueScreen({ navigation }) {
                     setShowDuplicateModal(false);
                   }}
                 >
-                  No, It's Same
+                  {t.sameBtn}
                 </Button>
               </View>
             </View>

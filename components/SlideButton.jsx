@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TouchableOpacity, Text, Animated, StyleSheet } from 'react-native';
 import { useNavigation } from "@react-navigation/native";
-export default function MyReportsButton(){
+export default function MyReportsButton({value}){
   const [scaleValue] = useState(new Animated.Value(1));
   const [shimmerAnim] = useState(new Animated.Value(0));
   const [shimmerPosition, setShimmerPosition] = useState({ x: 0, y: 0 });
@@ -59,7 +59,7 @@ export default function MyReportsButton(){
         activeOpacity={0.9}
         onPress={handlePress}
       >
-        <Text style={styles.buttonText}>MyReports</Text>
+        <Text style={styles.buttonText}>{value}</Text>
         
         <Animated.View
           style={[

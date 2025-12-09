@@ -16,7 +16,6 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
-
 } from "react-native-reanimated";
 import { Video } from "expo-av";
 import MyReportsButton from "../../components/SlideButton";
@@ -28,10 +27,11 @@ import axios from "axios";
 import { BASE_URL } from "../utils/constants";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Picker } from '@react-native-picker/picker';
+import { Picker } from "@react-native-picker/picker";
 import { G } from "react-native-svg";
 import Navbar from "../../components/NavBar";
 import AnimatedDropdown from "../../components/AnimatedDropdown";
+import LanToggler from "../../components/LanToggler";
 
 const { width } = Dimensions.get("window");
 
@@ -43,12 +43,44 @@ export default function HomeScreen({ navigation }) {
   const [selectedType, setSelectedType] = useState("All");
   const offset = useSharedValue(0);
 
+  const LANG = {
+    en: {
+      myReports: "My Reports",
+      loading: "Loading...",
+      issueType: "Issue Type",
+      description: "Description",
+      likes: "Likes",
+      noDescription: "No description available",
+      toggleModeOnline: "Online Reports",
+      toggleModeOffline: "Offline Reports",
+      error: "Something went wrong",
+      noReports: "No reports available",
+      viewMore: "View More",
+      viewLess: "View Less",
+    },
+
+    hi: {
+      myReports: "मेरी रिपोर्ट्स",
+      loading: "लोड हो रहा है...",
+      issueType: "समस्या प्रकार",
+      description: "विवरण",
+      likes: "पसंद",
+      noDescription: "कोई विवरण उपलब्ध नहीं",
+      toggleModeOnline: "ऑनलाइन रिपोर्ट्स",
+      toggleModeOffline: "ऑफ़लाइन रिपोर्ट्स",
+      error: "कुछ गलत हो गया",
+      noReports: "कोई रिपोर्ट उपलब्ध नहीं",
+      viewMore: "और देखें",
+      viewLess: "कम देखें",
+    },
+  };
+
+  // Active language state
+  const [langCode, setLangCode] = useState("en");
+  const t = LANG[langCode] || LANG.en;
+
   useEffect(() => {
-    offset.value = withRepeat(
-      withTiming(1, { duration: 3000 }),
-      -1,
-      false
-    );
+    offset.value = withRepeat(withTiming(1, { duration: 3000 }), -1, false);
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -60,7 +92,6 @@ export default function HomeScreen({ navigation }) {
       ],
     };
   });
-
 
   const issueOptions = [
     "All",
@@ -77,41 +108,41 @@ export default function HomeScreen({ navigation }) {
       await fetchReports(selectedType);
     };
     loadReports();
-  }, [selectedType]);
+  }, [selectedType, langCode]);
 
   const fetchReports = async (mode) => {
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
+      console.log("fetching the reports");
 
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") return alert("Permission denied!");
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") return alert("Permission denied!");
 
-    const loc = await Location.getCurrentPositionAsync({});
-    const { latitude, longitude } = loc.coords;
+      const loc = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = loc.coords;
 
-    const res = await axios.get(`${BASE_URL}/issues/nearby`, {
-      params: {
-        lat: latitude,
-        lng: longitude,
-        mode,          // "high" or "recent"
-        issueType: selectedType,
-      },
-    });
+      const res = await axios.get(`${BASE_URL}/issues/nearby`, {
+        params: {
+          lat: latitude,
+          lng: longitude,
+          mode,
+          lang: langCode,
+        },
+      });
 
-    setReports(res.data.issues);
-  } catch (err) {
-    console.log("Error fetching:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+      setReports(res.data.issues);
+    } catch (err) {
+      console.log("Error fetching:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLike = async (issueId) => {
     try {
       const token = await AsyncStorage.getItem("token");
 
-      const currentReport = reports.find(issue => issue._id === issueId);
+      const currentReport = reports.find((issue) => issue._id === issueId);
       const userLiked = currentReport?.likes?.includes(user?._id || user?.id);
 
       let res;
@@ -140,23 +171,18 @@ export default function HomeScreen({ navigation }) {
 
       setReports((prev) =>
         prev.map((issue) =>
-          issue._id === issueId
-            ? { ...issue, likes: updatedLikes }
-            : issue
+          issue._id === issueId ? { ...issue, likes: updatedLikes } : issue
         )
       );
 
       setSelectedCard((prev) =>
-        prev && prev._id === issueId
-          ? { ...prev, likes: updatedLikes }
-          : prev
+        prev && prev._id === issueId ? { ...prev, likes: updatedLikes } : prev
       );
     } catch (err) {
       console.log("Like error:", err);
       alert("Error updating like. Please try again.");
     }
   };
-
 
   const hasUserLiked = (report) => {
     return report.likes?.includes(user?._id || user?.id);
@@ -169,38 +195,50 @@ export default function HomeScreen({ navigation }) {
       activeOpacity={0.9}
     >
       <View style={styles.card}>
-        {item.image && <Image source={{ uri: item.image }} style={styles.image} />}
-        <Text style={styles.desc} numberOfLines={2}>{item.description}</Text>
+        {item.image && (
+          <Image source={{ uri: item.image }} style={styles.image} />
+        )}
+        <Text style={styles.desc} numberOfLines={2}>
+          {item.description}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <StatusBar hidden={true}/>
+      <StatusBar hidden={true} />
       <View style={{ width: "100%", marginBottom: 4 }}>
-         <View style={styles.borderWrapper}>
-
-
-        </View> 
+        <View style={styles.borderWrapper}></View>
       </View>
-      <View style={{ transform: [{ translateY: -90 }], flexDirection: "row", justifyContent: "space-between", zIndex: 10000  }}>
+      <View
+        style={{
+          transform: [{ translateY: -90 }],
+          flexDirection: "row",
+          justifyContent: "space-between",
+          zIndex: 10000,
+        }}
+      >
         <AnimatedDropdown
           options={issueOptions}
           selected={selectedType}
           onSelect={setSelectedType}
         />
-        <MyReportsButton />
+        <MyReportsButton value={t.myReports} />
       </View>
-      <View style={{ backgroundColor: "#F6F8F7", transform: [{ translateY: -70 }] }}>
+      <View
+        style={{ backgroundColor: "#F6F8F7", transform: [{ translateY: -70 }] }}
+      >
         <ImageScrollView />
       </View>
-      <View style={{transform: [{ translateY: -34 }] }}>
-         <Toggler onToggle={(mode) => fetchReports(mode)} />
 
+      
+        
+      <View style={{marginBottom: 20, transform: [{translateY: -30}]}}>
+        <Toggler onToggle={(mode) => fetchReports(mode)} />
       </View>
-     
-     
+      
+
       <View style={styles.container}>
         {loading ? (
           <ActivityIndicator animating size="large" color="#2563EB" />
@@ -221,13 +259,11 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.navbarWrapper}>
           <Navbar navigation={navigation} />
         </View>
-
       </View>
       {selectedCard && (
         <TouchableWithoutFeedback onPress={() => setSelectedCard(null)}>
           <View style={styles.modalOverlay}>
-
-            <TouchableWithoutFeedback onPress={() => { }}>
+            <TouchableWithoutFeedback onPress={() => {}}>
               <View style={styles.modalBox}>
                 {selectedCard.image && (
                   <Image
@@ -258,19 +294,16 @@ export default function HomeScreen({ navigation }) {
                         styles.reactionIcon,
                         !hasUserLiked(selectedCard)
                           ? { tintColor: "#DC2626" }
-                          : { tintColor: "#313030ff" }
+                          : { tintColor: "#313030ff" },
                       ]}
                     />
                   </TouchableOpacity>
                 </View>
-
               </View>
             </TouchableWithoutFeedback>
-
           </View>
         </TouchableWithoutFeedback>
       )}
-
     </View>
   );
 }
@@ -325,7 +358,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginLeft: 13
+    marginLeft: 13,
   },
   actionBtn: {
     paddingVertical: 8,
@@ -349,10 +382,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   pickerContainer: {
-    transform: [
-      { translateY: -40 },
-      { translateX: 40 }
-    ],
+    transform: [{ translateY: -40 }, { translateX: 40 }],
     marginHorizontal: 20,
     marginBottom: 1,
     borderWidth: 1,
@@ -391,7 +421,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
 
-  cardContainer: { alignItems: "center", },
+  cardContainer: { alignItems: "center" },
   card: {
     width: width * 0.44,
     height: 200,
@@ -400,7 +430,7 @@ const styles = StyleSheet.create({
     color: "#1e1d1dff",
     padding: 8,
     marginVertical: 10,
-   borderWidth: 1,
+    borderWidth: 1,
     borderColor: "#CDD7E1",
     borderRadius: 12,
     elevation: 3,
@@ -415,8 +445,6 @@ const styles = StyleSheet.create({
     color: "#181818ff",
     fontSize: 12,
     fontWeight: "500",
-
-
   },
 
   likeBtn: {
@@ -445,8 +473,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 70,
-  }
-  ,
+  },
   notLikedText: {
     color: "#3d52ddff",
   },
@@ -504,7 +531,7 @@ const styles = StyleSheet.create({
   picker: {
     width: "100%",
     height: "100%",
-    color: "white"
+    color: "white",
   },
   navbarContainer: {
     position: "absolute",
@@ -549,7 +576,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     zIndex: 999,
-
   },
   modalBox: {
     width: "85%",
@@ -580,7 +606,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     fontWeight: "500",
     marginBottom: 20,
-
   },
 
   modalActions: {
@@ -593,7 +618,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 4,
-    color:"black"
-
+    color: "black",
   },
 });

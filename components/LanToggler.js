@@ -1,8 +1,10 @@
-import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, Pressable, StyleSheet, Image } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LanToggler({ selectedLang, onToggle }) {
+  const [ishindi, setIshindi] = useState(false);
+
   const handleToggle = async (lang) => {
     try {
       await AsyncStorage.setItem("lang", lang);
@@ -21,14 +23,17 @@ export default function LanToggler({ selectedLang, onToggle }) {
           styles.button,
           selectedLang === "en" && styles.activeButton
         ]}
-        onPress={() => handleToggle("en")}
+        onPress={() => {
+          handleToggle("en")
+          setIshindi(false)
+        }}
       >
         <Text
           style={
             selectedLang === "en" ? styles.activeText : styles.inactiveText
           }
         >
-          EN
+          {!ishindi ? "EN" : <Image source={require("../assets/images/globe.png")}  style={{width: 25, height: 25}}/>}
         </Text>
       </Pressable>
 
@@ -38,14 +43,18 @@ export default function LanToggler({ selectedLang, onToggle }) {
           styles.button,
           selectedLang === "hi" && styles.activeButton
         ]}
-        onPress={() => handleToggle("hi")}
+        onPress={() => {
+          handleToggle("hi")
+          setIshindi(true);
+        }}
       >
         <Text
           style={
             selectedLang === "hi" ? styles.activeText : styles.inactiveText
           }
         >
-          हिंदी
+          
+          {ishindi ? "हिंदी" : <Image source={require("../assets/images/globe.png")}  style={{width: 25, height: 25}}/>}
         </Text>
       </Pressable>
     </View>
@@ -56,14 +65,14 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignSelf: "center",
-    marginVertical: 10,
-    backgroundColor: "#E0E0E0",
-    padding: 4,
-    borderRadius: 20,
+    // marginVertical: 10,
+    backgroundColor: "white",
+    paddingHorizontal: 4,
+    borderRadius: 20
   },
   button: {
     paddingVertical: 6,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     borderRadius: 20,
   },
   activeButton: {

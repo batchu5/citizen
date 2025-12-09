@@ -5,6 +5,7 @@ import API from "../api/api";
 import { BASE_URL } from "../utils/constants";
 import QuotationCard from "../../components/QuotationCard";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Progress Tracker Component
 const ProgressTracker = ({ currentStatus }) => {
@@ -31,6 +32,9 @@ const ProgressTracker = ({ currentStatus }) => {
       useNativeDriver: true,
     }).start();
   }, [currentStatus]);
+
+  
+
 
   return (
     <View style={trackStyles.container}>
@@ -185,6 +189,13 @@ export default function MyReportsScreen({ navigation }) {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [langCode, setLangCode] = useState("en");
+
+  useEffect(() => {
+    AsyncStorage.getItem("lang").then((val) => {
+      if (val) setLangCode(val);
+    });
+  }, []);
 
   const fetchReports = async () => {
     try {
@@ -247,27 +258,39 @@ export default function MyReportsScreen({ navigation }) {
         keyExtractor={(item) => item._id.toString()}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchReports} />}
         renderItem={({ item }) => {
-          const { backgroundColor, borderColor, textColor } = getStatusStyle(item.status);
-          return (
-            <Card style={styles.card} elevation={4}>
-              {/* Image */}
-              {item.image && (
-                <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
-              )}
+  const { backgroundColor, borderColor, textColor } = getStatusStyle(item.status);
 
-              <Card.Content style={styles.cardContent}>
-                <View style={styles.header}>
-                  <Text style={styles.issueType}>{item.issueType}</Text>
-                </View>
+  return (
+    <Card style={styles.card} elevation={4}>
 
-                <Text style={styles.description}>{item.description}</Text>
+      {/* Image */}
+      {item.image && (
+        <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
+      )}
 
-                {/* Progress Tracker */}
-                <ProgressTracker currentStatus={item.status} />
-              </Card.Content>
-            </Card>
-          );
-        }}
+      <Card.Content style={styles.cardContent}>
+        <View style={styles.header}>
+          <Text style={styles.issueType}>
+            {typeof item.issueType === "object"
+              ? item.issueType[langCode]
+              : item.issueType}
+          </Text>
+        </View>
+
+        <Text style={styles.description}>
+          {typeof item.description === "object"
+            ? item.description[langCode]
+            : item.description}
+        </Text>
+
+        {/* Progress Tracker */}
+        <ProgressTracker currentStatus={item.status} />
+      </Card.Content>
+    </Card>
+  );
+}}
+
+        
       />
     </View>
   );

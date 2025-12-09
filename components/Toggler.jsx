@@ -6,9 +6,6 @@ import {
   Animated,
   StyleSheet,
 } from "react-native";
-import * as Location from "expo-location";
-import axios from "axios";
-import { BASE_URL } from "../src/utils/constants";
 
 export default function Toggler({ onToggle }) {
   const [selected, setSelected] = useState("high");
@@ -24,7 +21,6 @@ export default function Toggler({ onToggle }) {
       tension: 40,
     }).start();
 
-    // 🔥 Call parent (HomeScreen)
     onToggle(option);
   };
 
@@ -68,7 +64,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
   },
   toggleContainer: {
     flexDirection: "row",

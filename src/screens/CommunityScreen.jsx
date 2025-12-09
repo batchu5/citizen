@@ -16,6 +16,42 @@ import { BASE_URL } from "../utils/constants";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AddIcon from "../icons/AddIcon";
+export const COMMUNITY_LANG = {
+  en: {
+    alerts: "Alerts",
+    communities: "Communities",
+    createCommunity: "Create Community",
+    communityName: "Community Name",
+    description: "Description",
+    cancel: "Cancel",
+    create: "Create",
+    accessDenied: "Access Denied",
+    notMember: "You are not a member of this community.",
+    errorUser: "User not logged in",
+    errorCreateTitle: "Error",
+    errorCreateMsg: "Community name is required",
+    successCreate: "Community created!",
+    Shkjn: "Shkjn"
+  },
+
+  hi: {
+    alerts: "सूचनाएँ",
+    communities: "समुदाय",
+    createCommunity: "समुदाय बनाएं",
+    communityName: "समुदाय का नाम",
+    description: "विवरण",
+    cancel: "रद्द करें",
+    create: "बनाएं",
+    accessDenied: "पहुँच अस्वीकृत",
+    notMember: "आप इस समुदाय के सदस्य नहीं हैं।",
+    errorUser: "उपयोगकर्ता लॉगिन नहीं है",
+    errorCreateTitle: "त्रुटि",
+    errorCreateMsg: "समुदाय का नाम आवश्यक है",
+    successCreate: "समुदाय बनाया गया!",
+    Shkjn: "Shkjn"
+  }
+};
+
 
 export default function CommunityScreen() {
   const navigation = useNavigation();
@@ -23,33 +59,41 @@ export default function CommunityScreen() {
   const [communities, setCommunities] = useState([]);
 
   const [alerts, setAlerts] = useState([]);
+  const [lang, setLang] = useState("en");
+
+  useEffect(() => {
+    const loadLang = async () => {
+      const stored = await AsyncStorage.getItem("lang");
+
+      const currentLang = stored || "en";
+      setLang(currentLang);
+      console.log("stored", stored);
+    };
+
+    loadLang();
+  }, []);
 
   async function loadAlerts() {
     try {
-      const res = await axios.get(`${BASE_URL}/alerts/all`);
+      const res = await axios.get(`${BASE_URL}/alerts/all`, {params: {lang: lang}});
       setAlerts(res.data.alerts);
+      console.log("res of alerts", res.data.alerts);
     } catch (err) {
       console.log("Error fetching alerts:", err);
     }
   }
 
   useEffect(() => {
+    getCommunities();
     loadAlerts();
-  }, []);
+  }, [lang]);
 
-  // ---------------------------
-  // POPUP STATE
-  // ---------------------------
+  const t = COMMUNITY_LANG[lang];
+
   const [showModal, setShowModal] = useState(false);
   const [communityName, setCommunityName] = useState("");
   const [communityDesc, setCommunityDesc] = useState("");
 
-  // TEMP current user (replace with real user later)
-  const CURRENT_USER_ID = "679ab5c674a84a22e884bd13";
-
-  // ---------------------------
-  // CREATE COMMUNITY
-  // ---------------------------
   const createCommunity = async () => {
     if (!communityName.trim()) {
       Alert.alert("Error", "Community name is required");
@@ -57,10 +101,11 @@ export default function CommunityScreen() {
     }
 
     try {
+      const userId = await AsyncStorage.getItem("userId");
       const body = {
         name: communityName,
         description: communityDesc,
-        members: [CURRENT_USER_ID], // auto add creator
+        members: [userId],
       };
 
       const res = await axios.post(`${BASE_URL}/community/create`, body);
@@ -69,7 +114,6 @@ export default function CommunityScreen() {
 
       setCommunities((prev) => [...prev, res.data.community]);
 
-      // Reset modal
       setCommunityName("");
       setCommunityDesc("");
       setShowModal(false);
@@ -79,26 +123,16 @@ export default function CommunityScreen() {
     }
   };
 
-  // ---------------------------
-  // FETCH COMMUNITIES
-  // ---------------------------
   const getCommunities = async () => {
     try {
       console.log("getting community details");
-      const res = await axios.get(`${BASE_URL}/community/allcom`);
+      const res = await axios.get(`${BASE_URL}/community/allcom`, {params: {lang:lang}});
       setCommunities(res.data.communities);
     } catch (err) {
       console.log("Error fetching communities:", err);
     }
   };
 
-  useEffect(() => {
-    getCommunities();
-  }, []);
-
-  // ---------------------------
-  // OPEN CHAT
-  // ---------------------------
   const openCommunityChat = async (community) => {
     try {
       const userId = await AsyncStorage.getItem("userId");
@@ -139,20 +173,17 @@ export default function CommunityScreen() {
           </View>
 
           <View style={{ fontSize: 24, flex: 1, flexDirection: "column" }}>
-            <Text style={{ fontSize: 24 }}> Alerts</Text>
+            <Text style={{ fontSize: 24 }}> {t.alerts}</Text>
 
             <View style={{ height: 5 }}>
               <Text>Shkjn</Text>
             </View>
           </View>
-          
         </Text>
 
         <TouchableOpacity onPress={() => setShowModal(true)}>
-          <View style={{flex: 1, marginTop: 16}}>
-
+          <View style={{ flex: 1, marginTop: 16 }}>
             <AddIcon />
-            
           </View>
         </TouchableOpacity>
       </View>
@@ -164,9 +195,15 @@ export default function CommunityScreen() {
           keyExtractor={(item, idx) => "a-" + idx}
           renderItem={({ item }) => (
             <View style={styles.alertCard}>
-              <Text style={styles.alertTitle}>{item.title}</Text>
-              <Text style={styles.alertMsg}>{item.message}</Text>
-              <Text style={styles.alertDept}>~ {item.department}</Text>
+              <Text style={styles.alertTitle}>{typeof item.title === "object"
+                    ? item.title[lang]
+                    : item.title}</Text>
+              <Text style={styles.alertMsg}>{typeof item.message === "object"
+                    ? item.message[lang]
+                    : item.message}</Text>
+              <Text style={styles.alertDept}>~ {typeof item.department === "object"
+                    ? item.department[lang]
+                    : item.department}</Text>
             </View>
           )}
         />
@@ -174,28 +211,10 @@ export default function CommunityScreen() {
 
       {/* COMMUNITY LIST */}
       <Text style={styles.section}>
-        {/* <Image source={require("../icons/image.png")} style={{width: 36, height: 36, alignContent: "center", alignSelf: "center"}}/> */}
-
-         <Text style={styles.heading}>
-          {/* <View style={{ alignSelf: "flex-end", flex: 1 }}>
-            <Image
-              source={require("../icons/building.png")}
-              style={{
-                width: 36,
-                height: 36,
-                alignSelf: "flex-end",
-              }}
-            />
-          </View> */}
-
+        <Text style={styles.heading}>
           <View style={{ fontSize: 24, flex: 1, flexDirection: "column" }}>
-            <Text style={{ fontSize: 22 }}> Communities </Text>
-
-            {/* <View style={{ height: 5 }}>
-              <Text>Shkjn</Text>
-            </View> */}
+            <Text style={{ fontSize: 22 }}> {t.communities} </Text>
           </View>
-          
         </Text>
       </Text>
       <FlatList
@@ -212,33 +231,36 @@ export default function CommunityScreen() {
                 style={{ width: 48, height: 48 }}
               />
               <View style={{ marginLeft: 12 }}>
-                <Text style={styles.communityName}>{item.name}</Text>
-                <Text style={styles.desc}>{item.description}</Text>
+                <Text style={styles.communityName}>
+                  {typeof item.name === "object" ? item.name[lang] : item.name}
+                </Text>
+                <Text style={styles.desc}>
+                  {typeof item.description === "object"
+                    ? item.description[lang]
+                    : item.description}
+                </Text>
               </View>
             </View>
           </TouchableOpacity>
         )}
       />
 
-      {/* -----------------------
-          CREATE COMMUNITY MODAL
-         ----------------------- */}
       <Modal visible={showModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Create Community</Text>
+            <Text style={styles.modalTitle}>{t.createCommunity}</Text>
 
             <TextInput
               value={communityName}
               onChangeText={setCommunityName}
-              placeholder="Community Name"
+              placeholder={t.communityName}
               style={styles.input}
             />
 
             <TextInput
               value={communityDesc}
               onChangeText={setCommunityDesc}
-              placeholder="Description"
+              placeholder={t.description}
               style={styles.input}
             />
 
@@ -247,14 +269,14 @@ export default function CommunityScreen() {
                 style={styles.cancelBtn}
                 onPress={() => setShowModal(false)}
               >
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Text style={styles.cancelText}>{t.cancel}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.saveBtn}
                 onPress={createCommunity}
               >
-                <Text style={styles.saveText}>Create</Text>
+                <Text style={styles.saveText}>{t.create}</Text>
               </TouchableOpacity>
             </View>
           </View>
