@@ -185,7 +185,7 @@ export default function Chat({ route }) {
         {/* HEADER */}
         <View style={styles.header}>
           <Text style={styles.heading}>
-            {communityDet?.name || "Loading..."}
+            {communityDet?.name.en || "Loading..."}
           </Text>
 
           <TouchableOpacity
